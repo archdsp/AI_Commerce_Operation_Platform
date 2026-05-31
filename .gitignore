@@ -222,3 +222,6 @@ MEMO.md
 TOOD.md
 # 생성 아티팩트 (엣지 샤드)
 data/edges/
+
+# 로컬 임베디드 Qdrant (생성물)
+.qdrant_local/

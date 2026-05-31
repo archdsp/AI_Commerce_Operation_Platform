@@ -6,6 +6,9 @@ pandas>=2.0.0
 python-dotenv>=1.0.0
 loguru>=0.7.0
 psycopg2-binary>=2.9.0
+pymysql>=1.1.0
+fastembed>=0.3.0
+qdrant-client>=1.7.0
 
 # 테스트
 pytest>=8.0
