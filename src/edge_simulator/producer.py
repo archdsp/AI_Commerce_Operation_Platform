@@ -30,6 +30,7 @@ class RunOptions:
     loop: bool = False
     dry_run: bool = False
     events: str = "all"
+    duration: float = 0.0      # N초 후 자동 종료 (0=무제한). 비용 제어용
 
 
 class Pacer:
@@ -131,11 +132,18 @@ async def run(cfg: KafkaConfig, edges_dir: Path, opts: RunOptions) -> dict:
             logger.info("sent={:,} | {:,.0f} msg/s | err={}", counters["n"],
                         counters["n"] / el if el else 0, counters["err"])
 
-    logger.info("{} | {} | scale=×{} | 점포≈{:,}",
+    async def deadline() -> None:
+        await asyncio.sleep(opts.duration)
+        logger.info("⏱ duration {}s 도달 → 종료", opts.duration)
+        stop.set()
+
+    logger.info("{} | {} | scale=×{} | 점포≈{:,}{}",
                 "DRY-RUN" if opts.dry_run else f"PRODUCE→{cfg.bootstrap}",
                 f"rate={opts.rate:g}/s" if opts.rate else f"taf={taf:g}",
-                opts.scale, len(nodes) * opts.scale)
+                opts.scale, len(nodes) * opts.scale,
+                f" | ⏱{opts.duration:g}s" if opts.duration else "")
     rep = asyncio.create_task(reporter())
+    timer = asyncio.create_task(deadline()) if opts.duration and opts.duration > 0 else None
     try:
         while True:
             await asyncio.gather(*(run_node(recs) for _, recs in nodes))
@@ -145,6 +153,8 @@ async def run(cfg: KafkaConfig, edges_dir: Path, opts: RunOptions) -> dict:
     finally:
         stop.set()
         rep.cancel()
+        if timer:
+            timer.cancel()
         if producer is not None:
             await producer.flush()
             await producer.stop()

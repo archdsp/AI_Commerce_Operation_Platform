@@ -36,6 +36,8 @@ def main() -> None:
     ap.add_argument("--max-events", type=int, default=0)
     ap.add_argument("--max-sleep", type=float, default=1.0)
     ap.add_argument("--loop", action="store_true", help="끝나면 처음부터 재생(지속 부하)")
+    ap.add_argument("--duration", type=float, default=0.0,
+                    help="N초만 실행 후 자동 종료 (0=무제한). 비용 제어 — 예: --duration 60")
     ap.add_argument("--edges-dir", type=Path, default=None)
     args = ap.parse_args()
 
@@ -46,6 +48,7 @@ def main() -> None:
         shard_index=args.shard_index, shard_count=args.shard_count,
         max_events=args.max_events, max_sleep=args.max_sleep,
         loop=args.loop, dry_run=args.dry_run, events=args.events,
+        duration=args.duration,
     )
     asyncio.run(run(cfg, args.edges_dir or edges_dir(), opts))
 
