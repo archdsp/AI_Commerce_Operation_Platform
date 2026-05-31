@@ -1,0 +1,15 @@
+[project]
+name = "ai-commerce-ops-platform"
+version = "0.1.0"
+description = "Olist 커머스 데이터 기반 LLM Agent 운영 플랫폼 + 엣지 점포 시뮬레이터"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q"
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
