@@ -16,7 +16,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # src/
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 from loguru import logger
 from pydantic import BaseModel
 
@@ -29,6 +30,11 @@ from edge_simulator.logging_setup import setup_logging
 
 setup_logging("gateway")
 app = FastAPI(title="AI Commerce Ops Gateway", version="0.1.0")
+
+# 데모 웹 UI(static/index.html)는 게이트웨이가 직접 서빙해 same-origin으로 호출 → CORS 문제 없음.
+# CORS는 파일을 따로 열거나(file://) 다른 호스트에서 호출하는 경우 대비 허용(데모용 *).
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+_STATIC = Path(__file__).resolve().parent / "static"
 
 # AWS API Gateway 우회 직접호출 차단: GATEWAY_ORIGIN_SECRET 설정 시 /v1/* 는
 # API Gateway가 주입하는 X-Origin-Secret 헤더가 일치해야 통과한다(미설정이면 로컬 개발용으로 검증 생략).
@@ -91,6 +97,12 @@ def _log(api_key_id, endpoint, query, agent_type, latency_ms, sql=None, rows=0, 
     finally:
         con.close()
     return rid
+
+
+@app.get("/")
+def ui():
+    """데모 웹 채팅 UI."""
+    return FileResponse(_STATIC / "index.html")
 
 
 @app.get("/health")

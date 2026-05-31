@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Commerce Ops — 채팅</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --ink: #1f2430;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --brand: #5b46e5;
+    --brand2: #7c3aed;
+    --user: #2563eb;
+    --md: #2563eb;
+    --voc: #db2777;
+    --insight: #059669;
+    --sql: #d97706;
+    --code-bg: #1e293b;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 8px 24px rgba(0,0,0,.06);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple SD Gothic Neo",
+                 "Noto Sans KR", "Malgun Gothic", sans-serif;
+    background: var(--bg); color: var(--ink);
+    display: flex; flex-direction: column; height: 100vh;
+  }
+  header {
+    background: linear-gradient(120deg, #5b46e5, #7c3aed 60%, #9333ea);
+    color: #fff; padding: 14px 20px; display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 2px 10px rgba(80,40,200,.25); z-index: 5;
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 700; letter-spacing: -.2px; }
+  header .sub { font-size: 12px; opacity: .85; margin-top: 2px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #facc15; display: inline-block;
+         box-shadow: 0 0 0 3px rgba(255,255,255,.18); transition: background .3s; }
+  .dot.ok { background: #4ade80; }
+  .dot.bad { background: #f87171; }
+  .health { margin-left: auto; font-size: 12px; display: flex; align-items: center; gap: 7px; opacity: .95; }
+
+  .controls {
+    background: var(--card); border-bottom: 1px solid var(--line);
+    padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  }
+  .field { display: flex; flex-direction: column; gap: 3px; }
+  .field label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+  select, input[type=text] {
+    font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--line);
+    border-radius: 9px; background: #fff; color: var(--ink); outline: none;
+  }
+  select:focus, input:focus { border-color: var(--brand2); box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
+  .pillrow { display: flex; gap: 6px; margin-left: auto; }
+  .pill { font-size: 12px; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--line);
+          background: #fff; cursor: pointer; color: var(--muted); transition: .15s; }
+  .pill:hover { border-color: var(--brand2); color: var(--brand2); }
+  .pill.active { background: var(--brand2); border-color: var(--brand2); color: #fff; }
+
+  main { flex: 1; overflow-y: auto; padding: 22px 16px 8px; }
+  .wrap { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+  .msg { display: flex; gap: 10px; align-items: flex-start; animation: rise .25s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .msg.user { flex-direction: row-reverse; }
+  .avatar { width: 30px; height: 30px; border-radius: 9px; flex: 0 0 auto; display: grid; place-items: center;
+            font-size: 14px; color: #fff; font-weight: 700; }
+  .msg.user .avatar { background: var(--user); }
+  .msg.bot .avatar { background: linear-gradient(135deg, #7c3aed, #db2777); }
+  .bubble { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px;
+            box-shadow: var(--shadow); max-width: 80%; }
+  .msg.user .bubble { background: var(--user); color: #fff; border: none; }
+  .bubble .answer { font-size: 14.5px; line-height: 1.62; white-space: pre-wrap; word-break: break-word; }
+  .bubble .answer strong { font-weight: 700; }
+
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .badge { font-size: 11px; padding: 3px 8px; border-radius: 7px; font-weight: 600;
+           background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+  .badge.agent-md { background: #eff6ff; color: var(--md); border-color: #bfdbfe; }
+  .badge.agent-voc { background: #fdf2f8; color: var(--voc); border-color: #fbcfe8; }
+  .badge.agent-insight { background: #ecfdf5; color: var(--insight); border-color: #a7f3d0; }
+  .badge.agent-text2sql, .badge.agent-sql { background: #fffbeb; color: var(--sql); border-color: #fde68a; }
+
+  details.sql { margin-top: 10px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  details.sql summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--muted);
+                        padding: 8px 11px; background: #f8fafc; user-select: none; list-style: none; }
+  details.sql summary::-webkit-details-marker { display: none; }
+  details.sql summary::before { content: "▸ "; }
+  details.sql[open] summary::before { content: "▾ "; }
+  pre.code { margin: 0; padding: 12px 13px; background: var(--code-bg); color: #e2e8f0;
+             font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px;
+             line-height: 1.55; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+
+  table.rows { margin-top: 11px; border-collapse: collapse; font-size: 12.5px; width: 100%; }
+  table.rows th, table.rows td { border: 1px solid var(--line); padding: 6px 9px; text-align: left; }
+  table.rows th { background: #f8fafc; color: #475569; font-weight: 600; }
+  table.rows tr:nth-child(even) td { background: #fbfcfe; }
+
+  .err { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
+
+  .typing { display: inline-flex; gap: 4px; align-items: center; }
+  .typing i { width: 7px; height: 7px; border-radius: 50%; background: #c4b5fd; animation: bob 1s infinite; }
+  .typing i:nth-child(2){ animation-delay:.15s } .typing i:nth-child(3){ animation-delay:.3s }
+  @keyframes bob { 0%,60%,100%{transform:translateY(0);opacity:.5} 30%{transform:translateY(-5px);opacity:1} }
+  .elapsed { font-size: 12px; color: var(--muted); margin-left: 8px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; max-width: 860px; margin: 4px auto 0; padding: 0 2px; }
+  .chip { font-size: 12.5px; padding: 7px 12px; border-radius: 999px; border: 1px dashed #cbd5e1;
+          background: #fff; cursor: pointer; color: #475569; transition: .15s; }
+  .chip:hover { border-style: solid; border-color: var(--brand2); color: var(--brand2); background: #faf5ff; }
+
+  footer { background: var(--card); border-top: 1px solid var(--line); padding: 12px 16px; }
+  .composer { max-width: 860px; margin: 0 auto; display: flex; gap: 10px; align-items: flex-end; }
+  textarea#q { flex: 1; resize: none; font: inherit; font-size: 14px; padding: 11px 13px; line-height: 1.5;
+               border: 1px solid var(--line); border-radius: 12px; outline: none; max-height: 140px; }
+  textarea#q:focus { border-color: var(--brand2); box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
+  button.send { background: var(--brand2); color: #fff; border: none; border-radius: 12px; font: inherit;
+                font-weight: 700; font-size: 14px; padding: 11px 20px; cursor: pointer; transition: .15s; white-space: nowrap; }
+  button.send:hover { background: #6d28d9; }
+  button.send:disabled { background: #c4b5fd; cursor: not-allowed; }
+  .hint { max-width: 860px; margin: 8px auto 0; font-size: 11px; color: var(--muted); display: flex; gap: 14px; }
+  .hint a { color: var(--brand2); cursor: pointer; text-decoration: none; }
+  .hint a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>🛒 AI Commerce Ops</h1>
+      <div class="sub">자연어 → Agent → SQL/RAG → vLLM 요약</div>
+    </div>
+    <div class="health"><span id="dot" class="dot"></span><span id="healthTxt">연결 확인 중…</span></div>
+  </header>
+
+  <div class="controls">
+    <div class="field">
+      <label>API Key (팀)</label>
+      <select id="key">
+        <option value="oy_demo_md_key">MD팀 — oy_demo_md_key</option>
+        <option value="oy_demo_voc_key">CS팀 — oy_demo_voc_key</option>
+        <option value="oy_demo_ops_key">운영팀 — oy_demo_ops_key</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>모드</label>
+      <select id="mode">
+        <option value="auto">자동 라우팅 (/v1/chat)</option>
+        <option value="md">MD 분석 (/v1/agent/run)</option>
+        <option value="voc">VOC 분석 (/v1/agent/run)</option>
+        <option value="insight">인사이트 (/v1/agent/run)</option>
+        <option value="sql">SQL 생성 (/v1/sql/generate)</option>
+      </select>
+    </div>
+    <div class="pillrow">
+      <span class="pill" id="usageBtn" title="사용량 통계">📊 Usage</span>
+      <span class="pill" id="clearBtn" title="대화 지우기">🧹 Clear</span>
+    </div>
+  </div>
+
+  <main>
+    <div class="wrap" id="chat"></div>
+  </main>
+  <div class="chips" id="chips"></div>
+
+  <footer>
+    <div class="composer">
+      <textarea id="q" rows="1" placeholder="질문을 입력하세요 (Enter 전송 · Shift+Enter 줄바꿈)"></textarea>
+      <button class="send" id="send">전송</button>
+    </div>
+    <div class="hint">
+      <span>응답은 6~30초 걸릴 수 있어요 (LLM + 교차리전 DB).</span>
+      <a id="advToggle">⚙ 고급</a>
+      <span id="advBox" style="display:none">Base URL: <input type="text" id="base" placeholder="(비우면 현재 서버)" style="width:280px;padding:3px 7px;font-size:12px"></span>
+    </div>
+  </footer>
+
+<script>
+const chat = document.getElementById('chat');
+const chips = document.getElementById('chips');
+const qEl = document.getElementById('q');
+const sendBtn = document.getElementById('send');
+const keyEl = document.getElementById('key');
+const modeEl = document.getElementById('mode');
+
+const SUGGESTIONS = {
+  auto:    ["카테고리별 매출 상위 5개 알려줘", "주문 수가 가장 많은 카테고리는?", "평균 평점이 가장 낮은 카테고리 알려줘"],
+  md:      ["카테고리별 매출 상위 5개 알려줘", "판매량(주문수) 상위 카테고리는?", "watches_gifts 카테고리 매출 알려줘"],
+  voc:     ["배송 관련 부정 리뷰 알려줘", "품질 불만 리뷰 요약해줘", "최근 부정 리뷰가 많은 카테고리는?"],
+  insight: ["매출 감소 원인 분석해줘", "전반적인 KPI 요약해줘", "부정 리뷰와 매출의 관계 분석해줘"],
+  sql:     ["카테고리별 주문 수 상위 3개", "배송 부정 리뷰 20건", "카테고리별 평균 평점"],
+};
+
+function baseUrl(){ return (document.getElementById('base').value || '').trim().replace(/\/$/, ''); }
+
+function esc(s){ return (s??'').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmt(s){ return esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>'); }
+const AGENT_LABEL = { md:'MD 분석', voc:'VOC 분석', insight:'인사이트', text2sql:'SQL', sql:'SQL', auto:'자동' };
+
+function addUser(text){
+  const el = document.createElement('div');
+  el.className = 'msg user';
+  el.innerHTML = `<div class="avatar">나</div><div class="bubble"><div class="answer">${esc(text)}</div></div>`;
+  chat.appendChild(el); scroll();
+}
+
+function addBotLoading(){
+  const el = document.createElement('div');
+  el.className = 'msg bot';
+  el.innerHTML = `<div class="avatar">AI</div><div class="bubble">
+    <span class="typing"><i></i><i></i><i></i></span><span class="elapsed">0.0초</span></div>`;
+  chat.appendChild(el); scroll();
+  const span = el.querySelector('.elapsed');
+  const t0 = performance.now();
+  const timer = setInterval(()=>{ span.textContent = ((performance.now()-t0)/1000).toFixed(1)+'초'; }, 100);
+  return { el, stop: ()=>clearInterval(timer) };
+}
+
+function renderRows(cols, rows){
+  if(!rows || !rows.length) return '';
+  let h = '<table class="rows"><thead><tr>' + cols.map(c=>`<th>${esc(c)}</th>`).join('') + '</tr></thead><tbody>';
+  rows.slice(0,15).forEach(r=>{ h += '<tr>' + cols.map(c=>`<td>${esc(r[c])}</td>`).join('') + '</tr>'; });
+  h += '</tbody></table>';
+  if(rows.length>15) h += `<div style="font-size:11px;color:#888;margin-top:4px">…외 ${rows.length-15}행</div>`;
+  return h;
+}
+
+function fillBot(box, data, mode){
+  let inner = '';
+  if(mode === 'sql'){
+    const cols = (data.rows && data.rows.length) ? Object.keys(data.rows[0]) : [];
+    inner += `<div class="answer">생성된 SQL을 실행했어요. <b>${data.rows_count ?? 0}행</b> 반환.</div>`;
+    if(data.sql) inner += `<details class="sql" open><summary>생성된 SQL</summary><pre class="code">${esc(data.sql)}</pre></details>`;
+    inner += renderRows(cols, data.rows);
+    inner += `<div class="meta"><span class="badge agent-sql">SQL</span><span class="badge">⏱ ${data.latency_ms ?? '?'}ms</span></div>`;
+  } else {
+    const at = data.agent_type || mode;
+    inner += `<div class="answer">${fmt(data.answer || '(빈 응답)')}</div>`;
+    if(data.sql) inner += `<details class="sql"><summary>생성된 SQL 보기</summary><pre class="code">${esc(data.sql)}</pre></details>`;
+    inner += `<div class="meta">
+      <span class="badge agent-${at}">${AGENT_LABEL[at]||at}</span>
+      <span class="badge">📊 ${data.rows_count ?? 0}행</span>
+      <span class="badge">⏱ ${((data.latency_ms||0)/1000).toFixed(1)}s</span>
+      ${data.model ? `<span class="badge">🤖 ${esc(data.model)}</span>`:''}</div>`;
+  }
+  box.querySelector('.bubble').innerHTML = inner;
+  scroll();
+}
+
+function fillErr(box, msg){
+  box.querySelector('.bubble').innerHTML =
+    `<div class="answer err" style="padding:8px;border-radius:8px;border:1px solid #fecaca">⚠️ ${esc(msg)}</div>`;
+  scroll();
+}
+
+function scroll(){ const m = document.querySelector('main'); m.scrollTop = m.scrollHeight; }
+
+async function ask(text){
+  if(!text.trim()) return;
+  const mode = modeEl.value, key = keyEl.value;
+  addUser(text);
+  qEl.value = ''; qEl.style.height='auto';
+  sendBtn.disabled = true;
+  const load = addBotLoading();
+
+  let url, body;
+  if(mode === 'auto'){ url = '/v1/chat'; body = { query: text }; }
+  else if(mode === 'sql'){ url = '/v1/sql/generate'; body = { query: text }; }
+  else { url = '/v1/agent/run'; body = { agent_type: mode, query: text }; }
+
+  try {
+    const res = await fetch(baseUrl() + url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': key },
+      body: JSON.stringify(body),
+    });
+    load.stop();
+    const txt = await res.text();
+    let data; try { data = JSON.parse(txt); } catch { data = { detail: txt }; }
+    if(!res.ok){ fillErr(load.el, `${res.status} — ${data.detail || txt}`); }
+    else { fillBot(load.el, data, mode); }
+  } catch(e){
+    load.stop();
+    fillErr(load.el, '네트워크 오류: ' + e.message + ' (게이트웨이가 떠 있는지 / Base URL을 확인하세요)');
+  } finally {
+    sendBtn.disabled = false; qEl.focus();
+  }
+}
+
+async function showUsage(){
+  addUser('[사용량 통계 조회]');
+  const load = addBotLoading();
+  try {
+    const res = await fetch(baseUrl() + '/v1/usage', { headers: { 'X-API-Key': keyEl.value } });
+    load.stop();
+    const d = await res.json();
+    if(!res.ok){ fillErr(load.el, JSON.stringify(d)); return; }
+    let h = `<div class="answer"><strong>📊 게이트웨이 사용량</strong>
+      <br>총 요청: <b>${d.total_requests}</b> · 평균 지연: <b>${(d.avg_latency_ms/1000).toFixed(1)}s</b> · 모델 호출: <b>${d.model_calls}</b></div>`;
+    const cols = Object.keys(d.by_endpoint||{});
+    if(cols.length) h += renderRows(['endpoint','count'], cols.map(k=>({endpoint:k, count:d.by_endpoint[k]})));
+    load.el.querySelector('.bubble').innerHTML = h; scroll();
+  } catch(e){ load.stop(); fillErr(load.el, e.message); }
+}
+
+function renderChips(){
+  const list = SUGGESTIONS[modeEl.value] || SUGGESTIONS.auto;
+  chips.innerHTML = '';
+  list.forEach(s=>{ const c=document.createElement('span'); c.className='chip'; c.textContent=s;
+    c.onclick=()=>{ qEl.value=s; qEl.focus(); }; chips.appendChild(c); });
+}
+
+// 모드↔키 자동 동기화 (편의)
+modeEl.onchange = ()=>{ renderChips();
+  const m = modeEl.value;
+  if(m==='voc') keyEl.value='oy_demo_voc_key';
+  else if(m==='insight') keyEl.value='oy_demo_ops_key';
+  else if(m==='md' || m==='auto') keyEl.value='oy_demo_md_key';
+};
+
+sendBtn.onclick = ()=>ask(qEl.value);
+qEl.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); ask(qEl.value); } });
+qEl.addEventListener('input', ()=>{ qEl.style.height='auto'; qEl.style.height=Math.min(qEl.scrollHeight,140)+'px'; });
+document.getElementById('usageBtn').onclick = showUsage;
+document.getElementById('clearBtn').onclick = ()=>{ chat.innerHTML=''; };
+document.getElementById('advToggle').onclick = ()=>{ const b=document.getElementById('advBox'); b.style.display = b.style.display==='none'?'inline':'none'; };
+
+async function checkHealth(){
+  const dot = document.getElementById('dot'), txt = document.getElementById('healthTxt');
+  try { const r = await fetch(baseUrl()+'/health'); if(r.ok){ dot.className='dot ok'; txt.textContent='게이트웨이 연결됨'; return; } }
+  catch(e){}
+  dot.className='dot bad'; txt.textContent='게이트웨이 응답 없음';
+}
+
+renderChips(); checkHealth(); setInterval(checkHealth, 15000); qEl.focus();
+</script>
+</body>
+</html>
