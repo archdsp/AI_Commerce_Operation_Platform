@@ -24,6 +24,13 @@ provider "aws" {
   region = var.region
 }
 
+locals {
+  # use_vpc_link=true → 내부 NLB DNS:listener_port / false → 공개 EC2 host:port
+  backend_base       = var.use_vpc_link ? "http://${join("", aws_lb.nlb[*].dns_name)}:${var.nlb_listener_port}" : "http://${var.backend_host}:${var.backend_port}"
+  backend_uri_proxy  = "${local.backend_base}/{proxy}"
+  backend_uri_health = "${local.backend_base}/health"
+}
+
 resource "aws_api_gateway_rest_api" "acop" {
   name        = "${var.name_prefix}-rest"
   description = "AI Commerce Ops — FastAPI 게이트웨이 앞단 (인증/throttle/quota 관리형)"
@@ -54,8 +61,11 @@ resource "aws_api_gateway_integration" "health_get" {
   http_method             = aws_api_gateway_method.health_get.http_method
   type                    = "HTTP_PROXY"
   integration_http_method = "GET"
-  uri                     = "http://${var.backend_host}:${var.backend_port}/health"
+  uri                     = local.backend_uri_health
   timeout_milliseconds    = 29000
+
+  connection_type = var.use_vpc_link ? "VPC_LINK" : "INTERNET"
+  connection_id   = one(aws_api_gateway_vpc_link.this[*].id)
 }
 
 # ── {proxy+} : 그 외 전 경로(/v1/*) — API Key 필수 + X-Origin-Secret 주입 ──
@@ -84,8 +94,11 @@ resource "aws_api_gateway_integration" "proxy_any" {
   http_method             = aws_api_gateway_method.proxy_any.http_method
   type                    = "HTTP_PROXY"
   integration_http_method = "ANY"
-  uri                     = "http://${var.backend_host}:${var.backend_port}/{proxy}"
+  uri                     = local.backend_uri_proxy
   timeout_milliseconds    = var.integration_timeout_ms # 기본 29000; >29000은 계정 쿼터 상향 필요
+
+  connection_type = var.use_vpc_link ? "VPC_LINK" : "INTERNET"
+  connection_id   = one(aws_api_gateway_vpc_link.this[*].id)
 
   request_parameters = {
     "integration.request.path.proxy" = "method.request.path.proxy"
@@ -106,6 +119,8 @@ resource "aws_api_gateway_deployment" "acop" {
       aws_api_gateway_resource.proxy.id,
       aws_api_gateway_method.proxy_any.id,
       aws_api_gateway_integration.proxy_any.id,
+      local.backend_base,
+      var.use_vpc_link,
     ]))
   }
 

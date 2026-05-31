@@ -24,6 +24,7 @@ Client ──X-API-Key──▶ [API Gateway REST]                     ──▶
 | `aws_api_gateway_api_key` ×N | 팀별 키 (값=FastAPI 평문 키와 동일) |
 | `aws_api_gateway_usage_plan` (+ `_key`) | throttle(rate/burst) + quota |
 | `deployment` + `stage` | 배포/스테이지 |
+| `vpc-link.tf` (NLB + VPC Link) | 운영용 사설 통합 (`use_vpc_link=true`) |
 
 ## 사용법
 ```bash
@@ -56,11 +57,9 @@ echo "GATEWAY_ORIGIN_SECRET=<tfvars의 origin_secret과 동일>" >> .env
 PYTHONPATH=src uvicorn gateway.app:app --host 0.0.0.0 --port 8000
 ```
 
-## 보안 단계 (PoC → 운영)
-- **현재(이 IaC)**: `backend_host` = **EC2 public DNS** 직접 프록시(PoC). 공개 8000은 `X-Origin-Secret`으로 보호.
-  REST API 공개 통합은 고정 출구 IP가 없어 SG로 막기 어렵기 때문.
-- **운영 권장**: `backend_host` 를 **내부 NLB DNS**로 바꾸고 `{proxy+}` 통합을 **VPC Link(`aws_api_gateway_vpc_link`)** 로 전환.
-  EC2 8000은 비공개(SG는 NLB만 허용). 본 베이스라인에서 VPC Link/NLB 리소스는 미포함(다음 단계).
+## 보안 단계 (PoC → 운영) — `use_vpc_link` 토글
+- **PoC (`use_vpc_link=false`, 기본)**: `backend_host` = EC2 public DNS 직접 프록시. 공개 8000은 `X-Origin-Secret`으로 보호(REST API 공개 통합은 고정 출구 IP가 없어 SG로 막기 어려움).
+- **운영 (`use_vpc_link=true`)**: `vpc-link.tf` 가 **내부 NLB + VPC Link**를 생성해 사설 통합. EC2 8000 비공개(SG는 NLB만 허용). 필요 입력: `vpc_id`, `nlb_subnet_ids`, `backend_instance_id` (+ `nlb_listener_port`). 이때 `backend_host`는 무시되고 NLB DNS가 자동 사용됨.
 - 추가 권장: ACM 인증서 + 커스텀 도메인(스테이지 경로 제거), AWS WAF 연결, CloudWatch 액세스 로그.
 
 ## API Gateway에 올리지 않은 것

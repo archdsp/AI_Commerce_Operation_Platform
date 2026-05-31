@@ -21,7 +21,7 @@
   (질의 경로) Client → Gateway(FastAPI) → LangGraph(Router→MD/VOC/Insight)
                        ├ Text-to-SQL → RDS MySQL
                        ├ RAG → Qdrant 검색
-                       └ RunPod vLLM(Qwen2.5-7B) 추론      ← P3/P4 (미구현)
+                       └ RunPod vLLM(Qwen2.5-7B) 추론      ← P3/P4 ✅ (구현·e2e 검증)
   (배치) MWAA cj-airflow → daily_commerce_ops_pipeline → daily_category_metrics  ← P5 (미구현)
 ```
 
@@ -31,7 +31,7 @@
 | 스트림 처리 → RDS (Review Analyzer, Metric Aggregator) | ✅ |
 | RAG 적재 (→ Qdrant) | ✅ |
 | LLM(vLLM Qwen2.5-7B) 연동 | ✅ 연결 (분석기 LLM 모드) |
-| Gateway / Multi-Agent / RAG-Agent | ❌ (P3/P4) |
+| Gateway / Multi-Agent / RAG-Agent | ✅ (P3/P4, e2e 검증) |
 | MWAA 일배치 DAG | ❌ (P5, 환경만 준비) |
 | Usage Logger / k6 / 배포 | ❌ (P6) |
 
@@ -89,12 +89,13 @@
 | GMV 상위 | health_beauty · sports_leisure · watches_gifts … |
 | RAG 적재/검색 | 재적재로 **Qdrant reviews 6,000 통일 벡터**(다국어), KO↔PT 의미검색 정상 |
 | vLLM | Qwen2.5-7B chat·JSON 분류 동작 |
+| **Gateway e2e (P3/P4)** | `/v1/chat`→SUM(gmv)→health_beauty 324K… · `/v1/agent/run` voc 20행+RAG · 인증 401/200 · X-Origin-Secret 403/200 · latency 7~16s |
 
 ---
 
 ## 5. 남은 작업 (로드맵)
-- **P3 Gateway**(API.md): FastAPI 인증/RateLimit/캐시(Redis)/usage + `/v1/*`
-- **P4 Multi-Agent + RAG**(AGENTS.md): LangGraph Router→MD/VOC/Insight + Text-to-SQL(MySQL) + RAG(Qdrant) + vLLM ← **핵심**
+- ✅ **P3 Gateway** 구현: FastAPI 인증(X-API-Key)/usage + `/v1/*`. **RateLimit·캐시는 AWS API Gateway(REST) Usage Plan에 위임**(Redis 미도입) → `infra/terraform/api-gateway/`
+- ✅ **P4 Multi-Agent + RAG**: LangGraph Router→MD/VOC/Insight + Text-to-SQL(MySQL) + RAG(Qdrant) + vLLM, e2e 검증
 - **P5 MWAA DAG**(AIRFLOW.md): `daily_commerce_ops_pipeline`(MySQL) S3 배포 (+ 사용자 `dags/reviews_embedding_dag.py` 임베딩 DAG)
 - **P6**: Usage Logger · k6 · 배포(Fargate/EKS) · 데모
 - 튜닝: LLM sentiment 프롬프트(점수 하이브리드), fastembed 버전 고정, commerce_ops 잔여 테이블
@@ -142,3 +143,8 @@ pytest tests
 | 34f571b | Qdrant Loader (RAG 적재) |
 | f267a04 | 임베딩 모델·NS 배치경로와 통일 |
 | 2004423 | vLLM(Qwen2.5-7B) 클라이언트 (Cloudflare UA) |
+| 6228c1f | LangGraph 멀티에이전트 + Text-to-SQL + RAG + vLLM (P4) |
+| fae6f03 | FastAPI Gateway 백엔드 (P3) |
+| 9bc05dd | X-Origin-Secret 우회 직접호출 차단 |
+| f4e3932 | Text-to-SQL 가드레일 (별칭/환각 컬럼) |
+| 5c5156c | API Gateway REST Terraform IaC |

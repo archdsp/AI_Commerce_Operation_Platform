@@ -69,3 +69,34 @@ variable "integration_timeout_ms" {
   type        = number
   default     = 29000
 }
+
+# ── 운영용 사설 통합 (use_vpc_link=true 일 때만) ──
+variable "use_vpc_link" {
+  description = "true면 내부 NLB + VPC Link 사설 통합(운영, EC2 비공개). false면 공개 EC2 HTTP_PROXY(PoC)"
+  type        = bool
+  default     = false
+}
+
+variable "vpc_id" {
+  description = "use_vpc_link=true 일 때 NLB target group의 VPC ID"
+  type        = string
+  default     = ""
+}
+
+variable "nlb_subnet_ids" {
+  description = "use_vpc_link=true 일 때 내부 NLB가 위치할 서브넷 ID 목록"
+  type        = list(string)
+  default     = []
+}
+
+variable "backend_instance_id" {
+  description = "use_vpc_link=true 일 때 NLB가 가리킬 FastAPI EC2 인스턴스 ID"
+  type        = string
+  default     = ""
+}
+
+variable "nlb_listener_port" {
+  description = "내부 NLB 리스너 포트 (API Gateway가 이 포트로 NLB에 접속)"
+  type        = number
+  default     = 80
+}

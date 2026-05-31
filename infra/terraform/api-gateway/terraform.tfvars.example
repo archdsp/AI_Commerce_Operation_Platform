@@ -20,3 +20,11 @@ quota_limit  = 10000
 quota_period = "DAY"
 
 integration_timeout_ms = 29000
+
+# === 운영: VPC Link + 내부 NLB (EC2 비공개화) — 주석 해제 ===
+# use_vpc_link        = true
+# vpc_id              = "vpc-xxxxxxxx"
+# nlb_subnet_ids      = ["subnet-aaaaaaaa", "subnet-bbbbbbbb"]
+# backend_instance_id = "i-0123456789abcdef0"
+# nlb_listener_port   = 80
+# (use_vpc_link=true 면 backend_host 는 무시되고 NLB DNS 가 자동 사용됨)
