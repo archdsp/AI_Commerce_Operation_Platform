@@ -1,7 +1,7 @@
 # Plan: AI Commerce Ops Platform — Olist 지역기반 실시간 스트리밍 + AWS관리형 + RunPod LLM
 
 ## Context
-CJ 올리브영 'Forward Deployed AI Engineer' 지원용 포트폴리오. Olist 커머스 데이터를 **"마치 실시간처럼"** AWS MSK로 흘리고, RunPod 셀프호스팅 LLM + LangGraph 멀티에이전트로 *자연어 질의→분석→인사이트* 를 제공하는 AI Commerce Operations Platform을 5일/1인으로 구축한다. 되도록 AWS 관리형 사용.
+Olist 커머스 데이터를 **"마치 실시간처럼"** AWS MSK로 흘리고, RunPod 셀프호스팅 LLM + LangGraph 멀티에이전트로 *자연어 질의→분석→인사이트* 를 제공하는 AI Commerce Operations Platform을 5일/1인으로 구축한다. 되도록 AWS 관리형 사용.
 
 **사용자 확정 결정**
 - 엣지노드 단위 = **state/city (636개)** — 현실적 "지역 허브" 토폴로지
