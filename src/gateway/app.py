@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import sys
 import time
 import uuid
@@ -14,7 +15,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # src/
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
 from loguru import logger
 from pydantic import BaseModel
 
@@ -27,6 +29,18 @@ from edge_simulator.logging_setup import setup_logging
 
 setup_logging("gateway")
 app = FastAPI(title="AI Commerce Ops Gateway", version="0.1.0")
+
+# AWS API Gateway 우회 직접호출 차단: GATEWAY_ORIGIN_SECRET 설정 시 /v1/* 는
+# API Gateway가 주입하는 X-Origin-Secret 헤더가 일치해야 통과한다(미설정이면 로컬 개발용으로 검증 생략).
+ORIGIN_SECRET = os.environ.get("GATEWAY_ORIGIN_SECRET")
+
+
+@app.middleware("http")
+async def verify_origin(request: Request, call_next):
+    if ORIGIN_SECRET and request.url.path.startswith("/v1"):
+        if request.headers.get("X-Origin-Secret") != ORIGIN_SECRET:
+            return JSONResponse(status_code=403, content={"detail": "직접 접근 불가 — API Gateway 경유 필요"})
+    return await call_next(request)
 
 
 class ChatReq(BaseModel):
