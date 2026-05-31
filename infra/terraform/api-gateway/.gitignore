@@ -1,0 +1,8 @@
+# Terraform 로컬 상태/비밀 — 커밋 금지
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.*
+terraform.tfvars
+*.auto.tfvars
+crash.log

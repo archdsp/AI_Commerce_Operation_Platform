@@ -1,0 +1,22 @@
+# cp terraform.tfvars.example terraform.tfvars 후 값 채우기 (terraform.tfvars 는 gitignore)
+region       = "ap-northeast-2"
+backend_host = "ec2-xx-xx-xx-xx.ap-northeast-2.compute.amazonaws.com" # 또는 내부 NLB DNS
+backend_port = 8000
+stage_name   = "prod"
+
+# FastAPI 의 GATEWAY_ORIGIN_SECRET 와 반드시 동일하게
+origin_secret = "change-me-must-match-fastapi-origin-secret"
+
+# FastAPI commerce_ops.api_keys 의 평문 키와 동일하게 (사용량 로깅 연결 위함)
+api_keys = {
+  md  = "oy_demo_md_key"
+  voc = "oy_demo_voc_key"
+  ops = "oy_demo_ops_key"
+}
+
+rate_limit   = 2
+burst_limit  = 10
+quota_limit  = 10000
+quota_period = "DAY"
+
+integration_timeout_ms = 29000
