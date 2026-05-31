@@ -74,7 +74,10 @@ def main() -> None:
     out, _ = run_cli(host, token, "variables get MYSQL_PASSWORD")
     print("  MYSQL_PASSWORD 라운드트립 일치:", tail(out) == env["MYSQL_PASSWORD"])
 
-    for cmd in ("dags unpause reviews_embedding", "dags trigger reviews_embedding"):
+    # 임베딩 DAG는 pause(스트리밍 컨슈머로 이관), 집계 DAG를 unpause+trigger
+    for cmd in ("dags pause reviews_embedding",
+                "dags unpause daily_commerce_ops_pipeline",
+                "dags trigger daily_commerce_ops_pipeline"):
         out, err = run_cli(host, token, cmd)
         print(f"$ {cmd} → {tail(out or err)}")
 

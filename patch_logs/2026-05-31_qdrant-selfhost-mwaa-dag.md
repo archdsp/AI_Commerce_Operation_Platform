@@ -122,3 +122,33 @@ curl -s http://localhost:6333/collections/reviews -H "api-key: $(grep ^QDRANT_AP
 ```
 
 > 게이트된 인프라 변경(SG·env-update)은 사용자 실행. 마무리(Variables·trigger)도 MWAA 변경이라 막히면 위 `finish_mwaa_setup.py`를 사용자가 직접 실행.
+
+---
+
+## 10. 전환(Pivot) — 임베딩 배치 실패 → 일별 집계 DAG
+
+**문제**: `reviews_embedding` 첫 런(`manual__2026-05-31T15:11`)이 `ModuleNotFoundError: No module named 'pymysql'`로 실패. 환경 업데이트는 `SUCCESS`·`requirements.txt` 연결됨이나 **워커에 미설치**. pymysql(순수 파이썬)이 없다는 건 requirements 설치가 **통째로 실패**했다는 뜻 → 범인은 **fastembed/onnxruntime의 mw1.small 빌드 실패**(사전 경고한 리스크). Worker 로그 비활성이라 pip 에러는 직접 확인 불가, 증상으로 확정.
+
+**결정(사용자 승인 "2번")**: 람다 분업을 명확히 —
+- **임베딩 = 스트리밍 컨슈머**(`src/consumers/qdrant_loader.py`). 이미 Qdrant `reviews` 적재 동작(6,000pt).
+- **MWAA = 일별 집계 DAG**(`daily_commerce_ops_pipeline`). **pymysql만** 필요(경량·설치 확실). 스트리밍 Metric Aggregator와 **동일 정의**로 `daily_category_metrics` 전체 재계산 = 배치 확정값.
+
+**변경 파일**:
+- `dags/daily_commerce_ops_pipeline.py` 추가 — `aggregate_daily_metrics`(전체 재계산 UPSERT) → `quality_check`(rows>0·음수금지 게이트). 무거운 import 없음, Variable로 MySQL 접속.
+- `mwaa/requirements.txt` → **`pymysql==1.2.0`만** (fastembed/qdrant-client 제거 → 설치 실패 회피).
+- `mwaa/finish_mwaa_setup.py` → `reviews_embedding` pause + `daily_commerce_ops_pipeline` unpause/trigger.
+
+**남은 게이트(사용자 실행)** — S3 배포 + 환경 업데이트(pymysql, ~20–30분) + 트리거:
+```bash
+cd /home/ubuntu/Workspace/AI_Commerce_Operation_Platform
+R=ap-northeast-2; BUCKET=cj-airflow-231143200487-ap-northeast-2-an
+aws s3 cp dags/daily_commerce_ops_pipeline.py s3://$BUCKET/dags/ --region $R
+aws s3 cp mwaa/requirements.txt s3://$BUCKET/requirements.txt --region $R
+aws s3 rm s3://$BUCKET/dags/reviews_embedding_dag.py --region $R          # 임베딩 DAG 제거(선택)
+VER=$(aws s3api head-object --bucket $BUCKET --key requirements.txt --query VersionId --output text)
+aws mwaa update-environment --name cj-airflow --region $R \
+  --requirements-s3-path requirements.txt --requirements-s3-object-version "$VER"   # AVAILABLE까지 ~20–30분
+python mwaa/finish_mwaa_setup.py   # AVAILABLE 후: Variables 재확인 + 집계 DAG trigger
+```
+검증(읽기): 태스크 로그 `daily_category_metrics 전체 재계산 UPSERT` + `QC rows=…` + `loaded_at` 갱신.
+

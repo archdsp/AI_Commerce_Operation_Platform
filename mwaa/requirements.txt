@@ -1,5 +1,4 @@
-# MWAA(cj-airflow, Airflow 3.2.1) 워커 추가 의존성 — reviews_embedding DAG용.
-# 로컬과 동일 버전 핀 → 임베딩 모델/벡터 일관성 보장.
+# MWAA(cj-airflow, Airflow 3.2.1) 워커 의존성 — daily_commerce_ops_pipeline(집계) DAG용.
+# pymysql만 필요(순수 파이썬 → mw1.small에 안전 설치). 임베딩(fastembed/qdrant-client)은
+# 스트리밍 컨슈머가 담당하므로 MWAA에는 넣지 않는다(과거 fastembed/onnxruntime 설치 실패 회피).
 pymysql==1.2.0
-qdrant-client==1.18.0
-fastembed==0.8.0
