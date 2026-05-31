@@ -2,6 +2,8 @@
 
 > LLM Agent 기반 커머스 운영 자동화 플랫폼
 
+> **⚠️ 스택 현행화(REALIGNED):** 실제 구현은 RDS MySQL · MSK(IAM) · MWAA · RunPod vLLM(Qwen2.5-7B) · Qdrant · AWS API Gateway. 아래 PostgreSQL/Redis/Docker Compose/OpenAI·Claude 언급은 [PROGRESS.md §9 스택 매핑](../PROGRESS.md)으로 대체됨.
+
 ---
 
 # 1. 프로젝트 개요
@@ -229,19 +231,20 @@ Airflow
 
 # 6. 기술 스택
 
-| 영역 | 기술 |
+| 영역 | 기술 (실제 구현) |
 |--------|--------|
 | Backend | FastAPI |
 | Language | Python |
-| Database | PostgreSQL |
-| Cache | Redis |
-| Event Streaming | Kafka |
-| Workflow | Airflow |
-| LLM | OpenAI / Claude |
+| Database | **RDS MySQL 8.4** _(문서 원안: PostgreSQL)_ |
+| Cache / Rate Limit | **AWS API Gateway Usage Plan** _(Redis 미도입)_ |
+| Event Streaming | **AWS MSK Serverless (IAM)** |
+| Workflow | **AWS MWAA** (Airflow) |
+| LLM | **RunPod vLLM — Qwen2.5-7B-Instruct** _(문서 원안: OpenAI/Claude)_ |
+| Vector DB / RAG | **Qdrant + fastembed** _(문서 외 추가)_ |
 | Agent | LangGraph |
-| Infra | Docker Compose |
-| Cloud | AWS EC2 |
-| Load Test | k6 |
+| API 관문 | **AWS API Gateway (REST)** + Terraform IaC |
+| Cloud | AWS (EC2 시뮬·게이트웨이 + 관리형) |
+| Load Test | k6 _(미구현)_ |
 
 ---
 

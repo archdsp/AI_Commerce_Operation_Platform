@@ -148,3 +148,61 @@ pytest tests
 | 9bc05dd | X-Origin-Secret 우회 직접호출 차단 |
 | f4e3932 | Text-to-SQL 가드레일 (별칭/환각 컬럼) |
 | 5c5156c | API Gateway REST Terraform IaC |
+
+---
+
+## 8. docs 명세 대비 구현 완성도 (감사: 2026-05-31)
+
+> PRD §5 Must-Have 기준. ✅ 완료 · 🟡 부분 · 🔄 재정렬(다른 스택으로 대체) · ❌ 미구현. 남은 작업: [TODO.md](./TODO.md)
+
+### 8.1 데이터 레이어 — ✅
+Olist 8테이블(`db/schema/mysql/olist_raw.sql` + `scripts/setup_mysql.py` 적재) · 운영 7테이블(`commerce_ops*.sql`) 모두 존재. 🔄 PostgreSQL → RDS MySQL.
+
+### 8.2 AI API Gateway — 🟡
+| ID | 항목 | 상태 |
+|----|------|------|
+| GW-01 | 인증 | 🟡 API Key ✅ / **JWT ❌** |
+| GW-02 | Rate Limit 100/min | 🔄 앱 미구현 → API Gateway Usage Plan 위임 |
+| GW-03 | Redis 캐시 | ❌ |
+| GW-04 | 사용량 추적 | 🟡 응답시간·요청수 ✅ / **토큰·비용 ❌** |
+| GW-05 | `/v1/*` 5엔드포인트 | ✅ |
+
+### 8.3 Multi-Agent — 🟡
+| 항목 | 상태 |
+|------|------|
+| MD / VOC / Insight | ✅ (MD·VOC e2e 검증) |
+| Agent Router (AG-01) | 🟡 키워드 ✅ / LLM fallback ❌ |
+| Text-to-SQL + 가드레일 (AG-02) | ✅ (MySQL, `sql_guard.py`) |
+| Prompt Versioning (AG-03) | ❌ 테이블만 존재, 코드 미사용 |
+| 실행 로깅 (AG-04) | ✅ |
+| RAG (Qdrant) | ✅➕ 문서 외 추가 |
+
+### 8.4 Kafka — 🟡
+토픽 · Review Analyzer · Metric Aggregator ✅ / **Usage Logger ❌** / Qdrant Loader ✅➕. 🔄 Kafka → MSK(IAM).
+
+### 8.5 Airflow — 🟡
+`dags/daily_commerce_ops_pipeline.py` 동작하나 **2태스크로 단순화**(문서 7태스크 아님, staging 테이블 없음). **MWAA 실배포 미확인**. 🔄 self-host → MWAA.
+
+### 8.6 Redis — ❌
+캐시·세션·Rate Limit 카운터 미구현 (Rate Limit만 API Gateway로 대체).
+
+### 8.7 배포·검증 — ❌
+Docker Compose ❌(실 AWS 관리형 대체) · k6 ❌ · 게이트웨이/에이전트 테스트 ❌ · Demo Video ❌.
+
+**요약:** 핵심 런타임(데이터→스트리밍→3에이전트→게이트웨이→RAG)은 완성·e2e 검증. 미구현/재정렬: JWT · Redis · 토큰·비용 · prompt_versions · Usage Logger · 7태스크 DAG/MWAA 배포 · Compose · k6.
+
+---
+
+## 9. 스택 현행 매핑 (문서 전제 → 실제 구현)
+
+설계 문서(PROJECT/PRD/ARCHITECTURE 등)는 좌측을 전제로 작성됨. 실제 구현은 우측으로 **재정렬**. 본 표가 스택 기준 단일 출처(SSOT).
+
+| 문서 전제 | 실제 구현 | 비고 |
+|-----------|-----------|------|
+| PostgreSQL (olist_raw/commerce_ops) | **RDS MySQL 8.4** (시드니) | 동일 2스키마, DDL 포팅 |
+| Redis (캐시/세션/Rate Limit) | **미도입** — Rate Limit은 **API Gateway Usage Plan** | 캐시/세션 미구현 |
+| Kafka (단일 브로커) | **AWS MSK Serverless (IAM)** | 서울 |
+| Airflow (self-host) | **AWS MWAA** | `dags/` |
+| OpenAI / Claude | **RunPod vLLM (Qwen2.5-7B-Instruct)** | `common/llm.py`, Cloudflare UA |
+| (없음) | **Qdrant + fastembed** RAG | 문서 외 추가 |
+| Docker Compose / EC2 | **실 AWS 관리형** + EC2(시뮬·게이트웨이) + **API Gateway 앞단** | `infra/terraform/api-gateway/` |

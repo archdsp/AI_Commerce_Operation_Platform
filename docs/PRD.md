@@ -4,7 +4,7 @@
 |------|------|
 | 문서 버전 | 1.0 |
 | 작성일 | 2026-05-31 |
-| 상태 | Draft |
+| 상태 | 구현 반영(REALIGNED) — 스택/완성도 [PROGRESS.md](../PROGRESS.md) 참조 |
 | 참조 문서 | [PROJECT.md](./PROJECT.md) |
 
 ---
@@ -183,17 +183,19 @@ Olist 커머스 데이터를 기반으로, **자연어 질의 → AI Agent → �
 
 ## 7. 기술 스택 (제약)
 
-| 영역 | 기술 |
+| 영역 | 기술 (실제 구현) |
 |------|------|
 | Backend | FastAPI (Python) |
-| DB | PostgreSQL |
-| Cache | Redis |
-| Event | Kafka |
-| Workflow | Airflow |
-| LLM | OpenAI / Claude |
+| DB | **RDS MySQL 8.4** _(원안: PostgreSQL)_ |
+| Cache / Rate Limit | **API Gateway Usage Plan** _(Redis 미도입)_ |
+| Event | **AWS MSK (IAM)** |
+| Workflow | **AWS MWAA** |
+| LLM | **RunPod vLLM — Qwen2.5-7B** _(원안: OpenAI/Claude)_ |
+| Vector DB / RAG | **Qdrant + fastembed** _(추가)_ |
 | Agent Framework | LangGraph |
-| Infra | Docker Compose, AWS EC2 |
-| Load Test | k6 |
+| API 관문 | **AWS API Gateway (REST)** + Terraform |
+| Infra | AWS (EC2 + 관리형), Docker Compose _(미구현)_ |
+| Load Test | k6 _(미구현)_ |
 
 ---
 
