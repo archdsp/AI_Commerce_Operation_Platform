@@ -1,5 +1,17 @@
 # Plan: AI Commerce Ops Platform — Olist 지역기반 실시간 스트리밍 + AWS관리형 + RunPod LLM
 
+> **⚠️ 스택 현행화(REALIGNED):** 이 문서는 **초기 계획(aspirational)** 으로 실제 구현과 차이가 크다. 실제 기준은 [PROGRESS.md §9](../PROGRESS.md). 아래 본문은 계획·근거 기록용으로 보존.
+>
+> | 이 계획 | 실제 구현 |
+> |---|---|
+> | EKS + HPA (gateway/agent/consumer) | **EC2 + systemd** (오토스케일 없음) |
+> | RDS **PostgreSQL** | **RDS MySQL 8.4** (시드니) |
+> | **ElastiCache Redis** (캐시/세션/RateLimit) | **미도입** — RateLimit은 API Gateway, 캐시/세션 미구현 |
+> | MSK **provisioned 3×m7g.large** | **MSK Serverless (IAM)** |
+> | RunPod **Qwen2.5-14B/32B** | **Qwen2.5-7B-Instruct** |
+> | ALB 앞단 | **AWS API Gateway (REST)** + Terraform IaC |
+> | k6 4시나리오 + HPA scale 데모 | **미구현(계획)** ([TODO.md](../TODO.md)) |
+
 ## Context
 Olist 커머스 데이터를 **"마치 실시간처럼"** AWS MSK로 흘리고, RunPod 셀프호스팅 LLM + LangGraph 멀티에이전트로 *자연어 질의→분석→인사이트* 를 제공하는 AI Commerce Operations Platform을 5일/1인으로 구축한다. 되도록 AWS 관리형 사용.
 
