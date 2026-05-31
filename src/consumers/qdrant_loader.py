@@ -21,7 +21,8 @@ from common.embeddings import EMBED_DIM, embed
 from edge_simulator.config import KafkaConfig
 from edge_simulator.kafka_auth import aiokafka_security_kwargs
 
-NS = uuid.UUID("0b3e6a52-2f7a-4c9b-9b1e-2a1d3c4f5e6a")
+# 배치 경로(embed_reviews.py/DAG)와 동일 네임스페이스 → review_id별 동일 point id (멱등 통일)
+NS = uuid.UUID("7b3e6a52-2f7a-4c9b-9b1e-2a1d3c4f5e6a")
 GROUP_ID = "qdrant-loader-v1"
 COLLECTION = os.environ.get("QDRANT_COLLECTION", "reviews")
 
