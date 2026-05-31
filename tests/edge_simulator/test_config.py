@@ -15,8 +15,12 @@ def test_kafka_config_plaintext(monkeypatch):
     assert cfg.topic_for_kind("order") == "order_events"
     assert cfg.topic_for_kind("review") == "review_created"
     assert {"order_events", "review_created"} <= set(cfg.topic_partitions)
-    assert cfg.topic_partitions["order_events"] == 6
-    assert cfg.topic_partitions["review_created"] == 3
+    assert cfg.topic_partitions["order_events"] == 12       # 권장 파티션 반영
+    assert cfg.topic_partitions["review_created"] == 6
+    # metric_updated는 log compaction, DLQ 토픽 포함
+    assert cfg.topic_specs["metric_updated"]["configs"].get("cleanup.policy") == "compact"
+    assert "review_created.dlq" in cfg.topic_partitions
+    assert "order_events.dlq" in cfg.topic_partitions
 
 
 def test_kafka_config_msk(monkeypatch):

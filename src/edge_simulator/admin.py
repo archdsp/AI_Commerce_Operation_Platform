@@ -20,24 +20,45 @@ async def make_admin(cfg: KafkaConfig):
 
 
 async def list_topics(admin) -> list[str]:
-    topics = sorted(await admin.list_topics())
-    logger.info("topics: {}", topics or "(없음)")
-    return topics
+    names = sorted(await admin.list_topics())
+    shown = [n for n in names if not n.startswith("__")]
+    try:    # 파티션 수까지 표시(검증용)
+        desc = await admin.describe_topics(shown)
+        counts = {d["topic"]: len(d["partitions"]) for d in desc}
+        for n in shown:
+            logger.info("  {:24} partitions={}", n, counts.get(n, "?"))
+    except Exception as exc:  # noqa: BLE001
+        logger.info("topics: {} (describe 미지원: {})", names, exc)
+    return names
 
 
 async def create_topics(cfg: KafkaConfig, admin) -> list[str]:
     from aiokafka.admin import NewTopic
 
     existing = set(await admin.list_topics())
-    new = [NewTopic(t, num_partitions=p, replication_factor=cfg.replication)
-           for t, p in cfg.topic_partitions.items() if t not in existing]
-    if not new:
-        logger.info("모든 토픽이 이미 존재")
-        return []
-    await admin.create_topics(new)
-    names = [t.name for t in new]
-    logger.success("created: {}", names)
-    return names
+    created: list[str] = []
+    for topic, spec in cfg.topic_specs.items():
+        if topic in existing:
+            continue
+        configs = spec.get("configs") or None
+        try:
+            await admin.create_topics([NewTopic(topic, num_partitions=spec["partitions"],
+                                                replication_factor=cfg.replication,
+                                                topic_configs=configs)])
+            created.append(topic)
+            logger.success("created {} (p={}, {})", topic, spec["partitions"], configs or {})
+        except Exception as exc:  # noqa: BLE001  (MSK가 특정 config 거부 시 config 없이 재시도)
+            logger.warning("create {} 실패({}) → config 없이 재시도", topic, exc)
+            try:
+                await admin.create_topics([NewTopic(topic, num_partitions=spec["partitions"],
+                                                    replication_factor=cfg.replication)])
+                created.append(topic)
+                logger.success("created {} (p={}, no configs)", topic, spec["partitions"])
+            except Exception as exc2:  # noqa: BLE001
+                logger.error("create {} 재시도 실패: {}", topic, exc2)
+    if not created:
+        logger.info("새로 생성된 토픽 없음")
+    return created
 
 
 async def delete_topics(cfg: KafkaConfig, admin) -> list[str]:

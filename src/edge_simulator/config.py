@@ -57,9 +57,27 @@ class KafkaConfig:
         )
 
     @property
+    def topic_specs(self) -> dict[str, dict]:
+        """토픽 → {partitions, configs}.
+
+        파티션 = 병렬성·순서 단위(컨슈머 수 ≤ 파티션). order_events가 최고볼륨이라 가장 많게.
+        configs: metric_updated는 '키별 최신 상태'라 log compaction, 나머지는 시간보관(retention).
+        *.dlq = poison 메시지 격리(컨슈머 단계에서 사용).
+        """
+        DAY = 86_400_000
+        wk, two_wk = str(7 * DAY), str(14 * DAY)
+        return {
+            self.order_topic:    {"partitions": 12, "configs": {"retention.ms": wk}},
+            self.review_topic:   {"partitions": 6,  "configs": {"retention.ms": wk}},
+            self.analyzed_topic: {"partitions": 6,  "configs": {"retention.ms": wk}},
+            self.metric_topic:   {"partitions": 3,  "configs": {"cleanup.policy": "compact"}},
+            f"{self.review_topic}.dlq": {"partitions": 3, "configs": {"retention.ms": two_wk}},
+            f"{self.order_topic}.dlq":  {"partitions": 3, "configs": {"retention.ms": two_wk}},
+        }
+
+    @property
     def topic_partitions(self) -> dict[str, int]:
-        # KAFKA.md §1: review 계열 3p / order_events 확장 6p
-        return {self.review_topic: 3, self.order_topic: 6, self.analyzed_topic: 3, self.metric_topic: 3}
+        return {t: s["partitions"] for t, s in self.topic_specs.items()}
 
     @property
     def replication(self) -> int:
