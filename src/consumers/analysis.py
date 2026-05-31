@@ -52,31 +52,22 @@ def analyze_heuristic(review_score, title, message) -> Analysis:
 
 
 def analyze_llm(review_score, title, message) -> Analysis:
-    """RunPod(OpenAI 호환) 호출. RUNPOD_BASE_URL/_MODEL/_API_KEY 사용. 미설정 시 예외."""
-    base = os.environ.get("RUNPOD_BASE_URL") or os.environ.get("LLM_BASE_URL")
-    if not base:
-        raise RuntimeError("RUNPOD_BASE_URL 미설정")
-    model = os.environ.get("RUNPOD_MODEL", "Qwen2.5-Coder-32B-Instruct")
+    """RunPod vLLM(OpenAI 호환) 분류 — common.llm 사용(브라우저 UA로 Cloudflare 1010 회피)."""
+    from common.llm import chat_json
     prompt = (
-        "다음 커머스 리뷰를 분류해 JSON만 출력하라. "
-        '{"sentiment":"positive|neutral|negative","voc_category":"quality|delivery|price|service|other","confidence":0~1}\n'
+        "다음 커머스 리뷰를 분류해 JSON만 출력하라. voc_category는 정확히 하나만 선택. "
+        '{"sentiment":"positive|neutral|negative","voc_category":"quality|delivery|price|service|other","confidence":0.0~1.0}\n'
         f"평점: {review_score}\n제목: {title}\n내용: {message}"
     )
-    payload = json.dumps({
-        "model": model, "temperature": 0, "max_tokens": 120,
-        "messages": [{"role": "user", "content": prompt}],
-    }).encode()
-    req = urllib.request.Request(
-        base.rstrip("/") + "/chat/completions", data=payload,
-        headers={"Content-Type": "application/json",
-                 "Authorization": f"Bearer {os.environ.get('RUNPOD_API_KEY', '')}"},
-    )
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        content = json.loads(resp.read())["choices"][0]["message"]["content"]
-    data = json.loads(content[content.find("{"): content.rfind("}") + 1])
-    sent = data["sentiment"] if data.get("sentiment") in SENTIMENTS else "neutral"
-    voc = data["voc_category"] if data.get("voc_category") in VOC_CATEGORIES else "other"
-    return Analysis(sent, voc, float(data.get("confidence", 0.7)))
+    data = chat_json([{"role": "user", "content": prompt}], max_tokens=80)
+    sent = data.get("sentiment") if data.get("sentiment") in SENTIMENTS else "neutral"
+    voc_raw = str(data.get("voc_category", "")).split("|")[0].strip()
+    voc = voc_raw if voc_raw in VOC_CATEGORIES else "other"
+    try:
+        conf = float(data.get("confidence", 0.7))
+    except (TypeError, ValueError):
+        conf = 0.7
+    return Analysis(sent, voc, conf)
 
 
 def analyze(review_score, title, message, mode: str = "heuristic") -> Analysis:

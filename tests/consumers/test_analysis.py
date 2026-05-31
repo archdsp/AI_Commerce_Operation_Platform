@@ -33,9 +33,13 @@ def test_outputs_in_vocab():
     assert 0.0 <= a.confidence <= 1.0
 
 
-def test_analyze_llm_falls_back_without_endpoint(monkeypatch):
-    # RUNPOD 미설정이면 llm 모드도 예외 없이 휴리스틱으로 폴백
-    monkeypatch.delenv("RUNPOD_BASE_URL", raising=False)
-    monkeypatch.delenv("LLM_BASE_URL", raising=False)
+def test_analyze_llm_falls_back_on_error(monkeypatch):
+    # analyze_llm 실패(LLM 다운 등) 시 예외 없이 휴리스틱으로 폴백 (네트워크 미사용)
+    import consumers.analysis as A
+
+    def boom(*a, **k):
+        raise RuntimeError("LLM down")
+
+    monkeypatch.setattr(A, "analyze_llm", boom)
     a = analyze(1, "", "produto quebrado", mode="llm")
     assert a.sentiment == "negative" and a.voc_category == "quality"
