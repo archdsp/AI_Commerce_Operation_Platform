@@ -19,7 +19,7 @@
 ## P3 — 문서 명세이나 재정렬로 대체/보류
 - [ ] **JWT 인증 (GW-01)** — 현재 API Key만. 필요 시 `Authorization: Bearer` HS256 추가.
 - [ ] **Redis 캐시·세션 (GW-03 / 5.6)** — 질의 해시 캐시 + 대화 세션. (Rate Limit은 API Gateway Usage Plan으로 대체 완료)
-- [x] **Docker Compose (로컬 모드)** — `docker-compose.local.yml`(MySQL·Redpanda·Qdrant) + Ollama + `scripts/local/up.sh` + 커밋 샘플(`data/olist_sample/`). macOS/Linux/WSL **한 커맨드** 구동. 가이드 `docs/LOCAL.md`. (네이티브 PowerShell 후속)
+- [x] **Docker Compose (로컬 모드)** — `docker-compose.local.yml`(MySQL·Redpanda·Qdrant) + Ollama + `scripts/local/up.sh` + 커밋 샘플(`data/olist_sample/`). macOS/Linux/WSL(bash) + Windows(PowerShell `.ps1`) **한 커맨드** 구동. 가이드 `docs/LOCAL.md`.
 - [ ] **Demo Video** — 최종 산출물.
 
 ## 정리(하우스키핑)

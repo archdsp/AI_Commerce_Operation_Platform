@@ -115,7 +115,22 @@ scripts/local/serve.sh start                             # 8) 게이트웨이 :8
 
 > i9 · 64GB · RTX 4070 Ti 환경이면 7b가 GPU에서 빠르게 돌고 Docker 3컨테이너도 여유롭다.
 
-**네이티브 PowerShell** 경로(WSL 미사용)는 후속 추가 예정 — `scripts/local/*.ps1`.
+**네이티브 PowerShell**(WSL 미사용)도 지원한다 — `scripts/local/*.ps1`:
+
+1. **Docker Desktop** + **Ollama for Windows** + **Python 3.11+** 설치.
+2. Windows에 NVIDIA 드라이버가 있으면 Ollama가 자동으로 GPU(CUDA)를 쓴다 — RTX 4070 Ti면 7b 쾌적.
+3. PowerShell에서:
+   ```powershell
+   pip install -r requirements.txt
+   Copy-Item .env.local.example .env.local
+   # Ollama 앱(또는 'ollama serve')이 떠 있어야 한다
+   powershell -ExecutionPolicy Bypass -File scripts\local\up.ps1     # 일괄 기동
+   # 종료:        powershell -ExecutionPolicy Bypass -File scripts\local\down.ps1
+   # 완전 초기화:  powershell -ExecutionPolicy Bypass -File scripts\local\down.ps1 -Purge
+   ```
+
+> bash(`up.sh`)와 PowerShell(`up.ps1`)은 동일 단계를 수행한다. 실행 정책 때문에 막히면 위처럼
+> `-ExecutionPolicy Bypass`로 호출한다. aiokafka 등 네이티브 이슈가 있으면 **WSL 경로를 권장**한다.
 
 ---
 
