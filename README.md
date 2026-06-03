@@ -147,8 +147,8 @@ scripts/serve_demo.sh status    # 상태 확인
 
 ## ⚡ 빠른 시작
 
-> 🖥️ **AWS 없이 로컬 PC에서?** (macOS · Linux · WSL Ubuntu) — 한 커맨드로 전 구간 구동:
-> `cp .env.local.example .env.local && scripts/local/up.sh` → 가이드 **[docs/LOCAL.md](./docs/LOCAL.md)**.
+> 🖥️ **AWS 없이 로컬 PC에서?** (macOS · Linux · WSL · Windows) — 한 커맨드로 전 구간 구동:
+> bash `scripts/local/up.sh` · PowerShell `scripts\local\up.ps1` → 가이드 **[docs/LOCAL.md](./docs/LOCAL.md)**.
 > 아래 절차는 **실 AWS 인프라(MSK·RDS·MWAA)** 전제다.
 
 ```bash
