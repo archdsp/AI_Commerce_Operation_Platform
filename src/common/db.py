@@ -13,7 +13,8 @@ import pymysql
 from dotenv import load_dotenv
 from pymysql.err import OperationalError
 
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(_ROOT / (os.environ.get("ENV_FILE") or ".env"))  # ENV_FILE(.env.local) 우선, 없으면 .env
 
 OLIST_DB = os.environ.get("MYSQL_DB_OLIST", "olist_raw")
 OPS_DB = os.environ.get("MYSQL_DB_OPS", "commerce_ops")

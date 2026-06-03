@@ -13,7 +13,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(_ROOT / (os.environ.get("ENV_FILE") or ".env"))  # ENV_FILE(.env.local) 우선, 없으면 .env
 
 _UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 DEFAULT_MODEL = os.environ.get("VLLM_MODEL", "Qwen/Qwen2.5-7B-Instruct")

@@ -70,10 +70,11 @@ def _insert(conn, db: str, table: str, df: pd.DataFrame) -> int:
 def main() -> None:
     dd = data_dir()
     conn = mysql_conn(autocommit=False)
-    logger.info("스키마 적용 (olist_raw, commerce_ops)")
+    logger.info("스키마 적용 (olist_raw, commerce_ops, commerce_ops_agent)")
     with conn.cursor() as cur:
         _apply_sql(cur, SCHEMA / "olist_raw.sql")
         _apply_sql(cur, SCHEMA / "commerce_ops.sql")
+        _apply_sql(cur, SCHEMA / "commerce_ops_agent.sql")  # api_keys 테이블 + 데모키 시드(게이트웨이 인증)
     conn.commit()
 
     logger.info("Olist 적재 → {} (from {})", OLIST_DB, dd)

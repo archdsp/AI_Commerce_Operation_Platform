@@ -14,7 +14,8 @@ _ENV_LOADED = False
 def load_env() -> None:
     global _ENV_LOADED
     if not _ENV_LOADED:
-        load_dotenv(REPO_ROOT / ".env")
+        # ENV_FILE(예: .env.local)이 있으면 우선 — 로컬/운영 프로파일 전환. REPO_ROOT 기준 상대/절대 모두 허용.
+        load_dotenv(REPO_ROOT / (os.environ.get("ENV_FILE") or ".env"))
         _ENV_LOADED = True
 
 

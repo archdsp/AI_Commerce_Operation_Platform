@@ -147,6 +147,10 @@ scripts/serve_demo.sh status    # 상태 확인
 
 ## ⚡ 빠른 시작
 
+> 🖥️ **AWS 없이 로컬 PC에서?** (macOS · Linux · WSL Ubuntu) — 한 커맨드로 전 구간 구동:
+> `cp .env.local.example .env.local && scripts/local/up.sh` → 가이드 **[docs/LOCAL.md](./docs/LOCAL.md)**.
+> 아래 절차는 **실 AWS 인프라(MSK·RDS·MWAA)** 전제다.
+
 ```bash
 pip install -r requirements.txt
 cp .env.example .env     # MSK/RDS/Qdrant/vLLM 값 채우기 (비밀은 .gitignore)
@@ -278,6 +282,7 @@ python scripts/run.py --rate 50000 --loop            # 지속 부하
 | [KAFKA](./docs/KAFKA.md) · [AIRFLOW](./docs/AIRFLOW.md) | 이벤트 파이프라인 · 배치 DAG |
 | [DEPLOYMENT](./docs/DEPLOYMENT.md) · [LOAD_TEST](./docs/LOAD_TEST.md) | 배포 · k6 부하 테스트 |
 | [DEMO_SCRIPT](./docs/DEMO_SCRIPT.md) | 데모 시나리오 |
+| [LOCAL](./docs/LOCAL.md) | 🖥️ 로컬 실행 (AWS 없이 · macOS/Linux/WSL · Ollama) |
 
 ---
 

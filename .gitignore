@@ -149,6 +149,7 @@ activemq-data/
 
 # Environments
 .env
+.env.local
 .envrc
 .venv
 env/
@@ -222,6 +223,9 @@ MEMO.md
 TOOD.md
 # 생성 아티팩트 (엣지 샤드)
 data/edges/
+.local/
+
+# 로컬 샘플 데이터셋(data/olist_sample/)은 자급형 데모를 위해 추적한다(무시 금지).
 
 # 로컬 임베디드 Qdrant (생성물)
 .qdrant_local/
