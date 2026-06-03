@@ -1,0 +1,70 @@
+# 로컬 인프라 (macOS · Linux · WSL Ubuntu · Windows/Docker Desktop 공통)
+# AWS 관리형(RDS MySQL · MSK Kafka · Qdrant)을 로컬 컨테이너로 대체한다.
+# LLM(Ollama)은 GPU 가속을 위해 컨테이너가 아닌 호스트 네이티브로 실행한다(docs/LOCAL.md).
+#
+#   docker compose -f docker-compose.local.yml up -d
+#   docker compose -f docker-compose.local.yml down        # (-v 로 볼륨까지 삭제)
+#
+# 앱(게이트웨이/컨슈머/시뮬레이터)은 호스트에서 네이티브 실행하며 localhost:매핑포트로 접속한다.
+name: ai-commerce-local
+
+services:
+  # ── RDS MySQL 대체 ─────────────────────────────────────────────
+  mysql:
+    image: mysql:8.4
+    container_name: acop-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: localdev          # .env.local 의 MYSQL_PASSWORD 와 일치
+      MYSQL_ROOT_HOST: "%"                    # 호스트(매핑 포트)에서 root 접속 허용
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-plocaldev", "--silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  # ── MSK Kafka 대체 (Kafka API 호환, 단일 노드) ──────────────────
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.7   # 필요 시 태그 조정 가능
+    container_name: acop-redpanda
+    command:
+      - redpanda
+      - start
+      - --mode dev-container          # 단일 노드 개발용(메모리/스레드 자동 축소)
+      - --smp 1
+      - --node-id 0
+      # 호스트 클라이언트가 localhost:9092로 접속·재접속하도록 advertise를 localhost로 고정
+      - --kafka-addr PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr PLAINTEXT://localhost:9092
+    ports:
+      - "9092:9092"      # Kafka API (PLAINTEXT)
+      - "9644:9644"      # Admin API
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  # ── Qdrant (RAG 벡터 검색) — 로컬 컨테이너 ──────────────────────
+  qdrant:
+    image: qdrant/qdrant:v1.12.4       # 필요 시 태그 조정 가능
+    container_name: acop-qdrant
+    ports:
+      - "6333:6333"      # REST/gRPC HTTP
+      - "6334:6334"      # gRPC
+    volumes:
+      - qdrant_data:/qdrant/storage
+    # 로컬은 API 키 없음(.env.local QDRANT_API_KEY 빈값)
+
+volumes:
+  mysql_data:
+  redpanda_data:
+  qdrant_data:
